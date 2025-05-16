@@ -1,0 +1,71 @@
+name: Auto Release from Release Branch
+
+on:
+  push:
+    branches:
+      - release/**
+      
+permissions:
+  contents: write  # 👈 Needed to push and tag
+  
+jobs:
+  release-if-readme-changed:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if README.md changed
+        id: readme_check
+        run: |
+          CHANGED=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | grep -E '^README.md$' || true)
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Exit if README.md not changed
+        if: ${{ steps.readme_check.outputs.changed == '' }}
+        run: |
+          echo "README.md not changed, skipping workflow."
+          exit 0
+
+      - name: Extract version from branch name
+        id: version
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/release/}
+          echo "version=v$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge release into master
+        run: |
+          git fetch origin master
+          git checkout master
+          git merge --no-ff origin/release/${{ steps.version.outputs.branch }} -m "Merge release ${{ steps.version.outputs.version }} into master"
+          git push origin master
+
+      - name: Merge release into develop
+        run: |
+          git fetch origin develop
+          git checkout develop
+          git merge --no-ff origin/release/${{ steps.version.outputs.branch }} -m "Merge release ${{ steps.version.outputs.version }} into develop"
+          git push origin develop
+
+      - name: Tag release
+        run: |
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: ${{ steps.notes.outputs.notes }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
