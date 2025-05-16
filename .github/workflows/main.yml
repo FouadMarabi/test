@@ -56,9 +56,13 @@ jobs:
           git merge --no-ff origin/release/${{ steps.version.outputs.branch }} -m "Merge release ${{ steps.version.outputs.version }} into develop"
           git push origin develop
 
-      - name: Tag release
+      - name: Tag latest commit on master
         run: |
-          git tag ${{ steps.version.outputs.version }}
+          git fetch origin master
+          git checkout master
+          git pull origin master
+          COMMIT=$(git rev-parse HEAD)
+          git tag ${{ steps.version.outputs.version }} $COMMIT
           git push origin ${{ steps.version.outputs.version }}
 
       - name: Create GitHub Release
