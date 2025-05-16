@@ -33,16 +33,7 @@ jobs:
           BRANCH_NAME=${GITHUB_REF#refs/heads/release/}
           echo "version=v$BRANCH_NAME" >> $GITHUB_OUTPUT
           echo "branch=$BRANCH_NAME" >> $GITHUB_OUTPUT
-
-      - name: Read release notes
-        id: notes
-        run: |
-          NOTES=$(cat RELEASE.md)
-          NOTES="${NOTES//'%'/'%25'}"
-          NOTES="${NOTES//$'\n'/'%0A'}"
-          NOTES="${NOTES//$'\r'/'%0D'}"
-          echo "notes=$NOTES" >> $GITHUB_OUTPUT
-
+          
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
