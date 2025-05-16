@@ -18,18 +18,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if README.md changed
+      - name: Check if README.md changed in the push
         id: readme_check
         run: |
-          CHANGED=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }} | grep -E '^README.md$' || true)
-          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+            git fetch origin ${{ github.event.before }}
+            CHANGED=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^README\.md$' || true)
+            echo "changed=$CHANGED" >> $GITHUB_OUTPUT
 
       - name: Exit if README.md not changed
         if: ${{ steps.readme_check.outputs.changed == '' }}
         run: |
-          echo "README.md not changed, skipping workflow."
-          exit 0
-
+            echo "README.md not changed, skipping workflow."
+            exit 0
+            
       - name: Extract version from branch name
         id: version
         run: |
